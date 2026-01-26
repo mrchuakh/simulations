@@ -3,324 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>17 Particle SHM - Individual Images</title>
+    <title>SHM Simulations Portal</title>
     <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #333333;
-            --dial-color: #f2f2f2;
-            --indicator-color: #007bff;
-        }
-
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #333;
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
-            overflow: hidden;
         }
 
-        canvas {
-            background: #ffffff;
-            width: 100%;
-            height: 30vh;
-            display: block;
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            padding: 40px;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
 
-        .ui-wrapper {
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-top: 1px solid #eee;
-            padding-top: 5px;
-            overflow-y: auto;
-        }
-
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(17, 1fr);
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .column {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 4px;
-        }
-
-        .section-title {
-            font-size: 11px;
-            font-weight: 800;
-            margin: 8px 0 4px 0;
-            color: #999;
-            text-transform: uppercase;
-        }
-
-        input[type=range].vertical {
-            writing-mode: bt-lr;
-            -webkit-appearance: slider-vertical;
-            width: 10px;
-            height: 60px;
-            cursor: pointer;
-        }
-
-        .dial-container {
-            width: 30px;
-            height: 30px;
-            position: relative;
-            cursor: ns-resize;
-            user-select: none;
-        }
-
-        .dial-svg {
-            width: 100%;
-            height: 100%;
-            transition: transform 0.1s ease-out;
-        }
-
-        .dial-circle { fill: var(--dial-color); stroke: #ccc; stroke-width: 2; }
-        .dial-indicator { stroke: var(--indicator-color); stroke-width: 4; stroke-linecap: round; }
-
-        .particle-num { font-size: 9px; color: #bbb; margin-top: 2px; }
-
-        /* Individual Image Upload Button */
-        .img-btn {
-            width: 24px;
-            height: 24px;
-            background: #eee;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.2s;
-        }
-        .img-btn:hover { background: #ddd; }
-        .img-btn.loaded { background: #28a745; color: white; border-color: #28a745; }
-
-        .footer-controls {
-            margin-top: auto;
+        h1 {
+            font-weight: 300;
             margin-bottom: 10px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding: 10px;
+            letter-spacing: 1px;
         }
 
-        button, .file-btn {
-            padding: 6px 12px;
-            border: 1px solid #333;
-            background: white;
-            cursor: pointer;
+        p {
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sim-link {
+            text-decoration: none;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #333;
+            border: 2px solid #333;
+            border-radius: 8px;
             font-weight: bold;
-            border-radius: 4px;
-            font-size: 10px;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sim-link:hover {
+            background-color: #333;
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .sim-link span {
+            font-size: 0.8rem;
+            opacity: 0.6;
             text-transform: uppercase;
         }
 
-        button:hover { background: #333; color: white; }
-        
-        #pause-btn { color: #dc3545; border-color: #dc3545; }
-        #run-btn { color: #28a745; border-color: #28a745; }
-        .cheat { background: #6f42c1; color: white; border-color: #6f42c1; }
+        .github-footer {
+            margin-top: 40px;
+            font-size: 0.8rem;
+        }
 
-        input[type="file"] { display: none; }
+        .github-footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
 
-    <canvas id="simCanvas"></canvas>
+    <div class="container">
+        <h1>Physics Simulations</h1>
+        <p>Select a simulation to begin</p>
 
-    <div class="ui-wrapper">
-        <div class="section-title">Amplitude</div>
-        <div class="control-grid" id="amp-grid"></div>
+        <div class="nav-links">
+            <!-- Link to Simulation 2 -->
+            <a href="sim2.html" class="sim-link">
+                Simulation 2 
+                <span>Launch &rarr;</span>
+            </a>
 
-        <div class="section-title">Phase</div>
-        <div class="control-grid" id="phase-grid"></div>
+            <!-- Link to Simulation 3 -->
+            <a href="sim3.html" class="sim-link">
+                Simulation 3
+                <span>Launch &rarr;</span>
+            </a>
+        </div>
 
-        <div class="section-title">Individual Images</div>
-        <div class="control-grid" id="image-grid"></div>
-
-        <div class="footer-controls">
-            <button id="pause-btn">Pause</button>
-            <button id="run-btn">Run</button>
-            <button id="cheat-standing" class="cheat">Standing Wave</button>
-            <button id="cheat-progressive" class="cheat">Progressive Wave</button>
-            <button onclick="location.reload()">Reset All</button>
+        <div class="github-footer">
+            Repository: <a href="https://github.com/mrchuakh/simulations">mrchuakh/simulations</a>
         </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('simCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        const numParticles = 17;
-        let particles = [];
-        let time = 0;
-        let isPaused = false;
-
-        let ampSliders = [];
-        let phaseDials = [];
-        let imgButtons = [];
-
-        function init() {
-            resize();
-            const ampGrid = document.getElementById('amp-grid');
-            const phaseGrid = document.getElementById('phase-grid');
-            const imageGrid = document.getElementById('image-grid');
-
-            for (let i = 0; i < numParticles; i++) {
-                particles.push({ amplitude: 50, phase: 0, img: null });
-
-                // 1. Amp Slider
-                const ampCol = document.createElement('div');
-                ampCol.className = 'column';
-                const ampS = document.createElement('input');
-                ampS.type = 'range'; ampS.className = 'vertical';
-                ampS.min = 0; ampS.max = 120; ampS.value = 50;
-                ampS.oninput = (e) => particles[i].amplitude = parseFloat(e.target.value);
-                ampCol.appendChild(ampS);
-                ampGrid.appendChild(ampCol);
-                ampSliders.push(ampS);
-
-                // 2. Phase Dial
-                const phaseCol = document.createElement('div');
-                phaseCol.className = 'column';
-                const dialCont = document.createElement('div');
-                dialCont.className = 'dial-container';
-                dialCont.innerHTML = `<svg class="dial-svg" viewBox="0 0 40 40"><circle class="dial-circle" cx="20" cy="20" r="18" /><line class="dial-indicator" x1="20" y1="20" x2="20" y2="5" /></svg>`;
-                setupDialInteraction(dialCont, i, 0);
-                phaseCol.appendChild(dialCont);
-                phaseCol.innerHTML += `<div class="particle-num">${i+1}</div>`;
-                phaseGrid.appendChild(phaseCol);
-                phaseDials.push(phaseCol.querySelector('.dial-svg'));
-
-                // 3. Image Upload
-                const imgCol = document.createElement('div');
-                imgCol.className = 'column';
-                const label = document.createElement('label');
-                label.className = 'img-btn';
-                label.innerHTML = '📷';
-                const input = document.createElement('input');
-                input.type = 'file'; input.accept = 'image/*';
-                input.onchange = (e) => loadSpecificImage(i, e.target.files[0], label);
-                label.appendChild(input);
-                imgCol.appendChild(label);
-                imageGrid.appendChild(imgCol);
-                imgButtons.push(label);
-            }
-        }
-
-        function loadSpecificImage(index, file, labelElement) {
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    particles[index].img = img;
-                    labelElement.classList.add('loaded');
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function updateDialVisual(index, rad) {
-            const deg = (rad / (Math.PI * 2)) * 360;
-            phaseDials[index].style.transform = `rotate(${deg}deg)`;
-        }
-
-        function setupDialInteraction(el, index, initialValue) {
-            let startY;
-            let startPhase = initialValue;
-            el.addEventListener('mousedown', (e) => {
-                startY = e.clientY;
-                const onMouseMove = (me) => {
-                    let newPhase = startPhase + ((startY - me.clientY) / 100) * Math.PI;
-                    particles[index].phase = newPhase;
-                    updateDialVisual(index, newPhase);
-                };
-                const onMouseUp = () => {
-                    startPhase = particles[index].phase;
-                    window.removeEventListener('mousemove', onMouseMove);
-                    window.removeEventListener('mouseup', onMouseUp);
-                };
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-            });
-        }
-
-        document.getElementById('cheat-standing').onclick = () => {
-            for (let i = 0; i < numParticles; i++) {
-                let waveFactor = Math.sin((4 * Math.PI * i) / (numParticles - 1));
-                particles[i].amplitude = Math.abs(waveFactor) * 100;
-                particles[i].phase = waveFactor >= 0 ? 0 : Math.PI;
-                ampSliders[i].value = particles[i].amplitude;
-                updateDialVisual(i, particles[i].phase);
-            }
-        };
-
-        document.getElementById('cheat-progressive').onclick = () => {
-            const phaseStep = (2 * Math.PI) / 8;
-            for (let i = 0; i < numParticles; i++) {
-                particles[i].amplitude = 60; 
-                particles[i].phase = -i * phaseStep; 
-                ampSliders[i].value = 60;
-                updateDialVisual(i, particles[i].phase);
-            }
-        };
-
-        function resize() {
-            canvas.width = window.innerWidth * window.devicePixelRatio;
-            canvas.height = (window.innerHeight * 0.3) * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        }
-
-        function draw() {
-            const w = canvas.width / window.devicePixelRatio;
-            const h = canvas.height / window.devicePixelRatio;
-            const centerY = h / 2;
-            const laneWidth = w / numParticles;
-
-            ctx.clearRect(0, 0, w, h);
-            ctx.beginPath(); ctx.strokeStyle = '#eee';
-            ctx.moveTo(0, centerY); ctx.lineTo(w, centerY); ctx.stroke();
-
-            particles.forEach((p, i) => {
-                const x = (i + 0.5) * laneWidth;
-                const y = centerY + p.amplitude * Math.sin(time + p.phase);
-                if (p.img) {
-                    const s = 40;
-                    ctx.drawImage(p.img, x - s/2, y - s/2, s, s);
-                } else {
-                    ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
-                    ctx.fillStyle = "#ccc"; ctx.fill();
-                    ctx.fillStyle = "#666"; ctx.font = "8px Arial"; ctx.textAlign = "center";
-                    ctx.fillText(i+1, x, y+3);
-                }
-            });
-
-            if (!isPaused) time += 0.06;
-            requestAnimationFrame(draw);
-        }
-
-        document.getElementById('pause-btn').onclick = () => isPaused = true;
-        document.getElementById('run-btn').onclick = () => isPaused = false;
-        window.addEventListener('resize', resize);
-        init();
-        draw();
-    </script>
 </body>
 </html>
