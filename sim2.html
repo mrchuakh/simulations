@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHM Simulation - Toggle Control</title>
+    <title>SHM Wave Simulation</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -67,7 +67,6 @@
             letter-spacing: 1px;
         }
 
-        /* Amplitude Sliders */
         input[type=range].vertical {
             writing-mode: bt-lr;
             -webkit-appearance: slider-vertical;
@@ -76,13 +75,13 @@
             cursor: pointer;
         }
 
-        /* Phase Dials */
         .dial-container {
             width: 38px;
             height: 38px;
             position: relative;
             cursor: ns-resize;
             user-select: none;
+            margin-bottom: 10px;
         }
 
         .dial-svg {
@@ -94,14 +93,6 @@
         .dial-circle { fill: var(--dial-color); stroke: #ccc; stroke-width: 2; }
         .dial-indicator { stroke: var(--indicator-color); stroke-width: 4; stroke-linecap: round; }
 
-        .particle-num {
-            font-size: 10px;
-            font-weight: bold;
-            color: #444;
-            margin-top: 2px;
-        }
-
-        /* Footer Controls */
         .footer-controls {
             margin-top: auto;
             margin-bottom: 20px;
@@ -127,7 +118,6 @@
 
         button:hover, .file-btn:hover { background: #333; color: white; }
         
-        /* Combined Run/Pause Button Styling */
         #toggle-btn {
             min-width: 100px;
             border-color: var(--run-color);
@@ -140,8 +130,8 @@
         #toggle-btn.running:hover { background: var(--pause-color); color: white; }
         #toggle-btn:not(.running):hover { background: var(--run-color); color: white; }
 
-        .cheat-btn { background: #6f42c1; color: white; border-color: #6f42c1; }
-        .cheat-btn:hover { background: #5a32a3; }
+        .pattern-btn { background: #6f42c1; color: white; border-color: #6f42c1; }
+        .pattern-btn:hover { background: #5a32a3; }
         
         #batch-upload-btn { background: #007bff; color: white; border-color: #007bff; }
         #batch-upload-btn:hover { background: #0056b3; }
@@ -157,7 +147,7 @@
         <div class="section-title">Amplitude</div>
         <div class="control-grid" id="amp-grid"></div>
 
-        <div class="section-title">Phase (Drag Up/Down)</div>
+        <div class="section-title">Phase</div>
         <div class="control-grid" id="phase-grid"></div>
 
         <div class="footer-controls">
@@ -166,8 +156,8 @@
                 <input type="file" id="batchInput" multiple accept="image/*">
             </label>
             <button id="toggle-btn">Run</button>
-            <button id="cheat-standing" class="cheat-btn">Cheat: Standing</button>
-            <button id="cheat-progressive" class="cheat-btn">Cheat: Progressive</button>
+            <button id="btn-standing" class="pattern-btn">Standing Wave</button>
+            <button id="btn-progressive" class="pattern-btn">Progressive Wave</button>
         </div>
     </div>
 
@@ -180,7 +170,7 @@
         const numParticles = 17;
         let particles = [];
         let time = 0;
-        let isPaused = true; // Paused at the beginning
+        let isPaused = true; 
 
         let ampSliders = [];
         let phaseDials = [];
@@ -193,7 +183,7 @@
             for (let i = 0; i < numParticles; i++) {
                 particles.push({ amplitude: 50, phase: 0, img: null });
 
-                // Amplitude Sliders
+                // Amplitude Column
                 const ampCol = document.createElement('div');
                 ampCol.className = 'column';
                 const ampS = document.createElement('input');
@@ -204,7 +194,7 @@
                 ampGrid.appendChild(ampCol);
                 ampSliders.push(ampS);
 
-                // Phase Dials
+                // Phase Dial Column (Unnumbered)
                 const phaseCol = document.createElement('div');
                 phaseCol.className = 'column';
                 const dialCont = document.createElement('div');
@@ -214,7 +204,6 @@
                         <circle class="dial-circle" cx="20" cy="20" r="18" />
                         <line class="dial-indicator" x1="20" y1="20" x2="20" y2="5" />
                     </svg>
-                    <div class="particle-num">${i+1}</div>
                 `;
                 setupDialInteraction(dialCont, i, 0);
                 phaseCol.appendChild(dialCont);
@@ -223,7 +212,6 @@
             }
         }
 
-        // --- Toggle logic ---
         toggleBtn.onclick = () => {
             isPaused = !isPaused;
             if (isPaused) {
@@ -235,7 +223,6 @@
             }
         };
 
-        // --- Batch upload ---
         batchInput.onchange = (e) => {
             const files = Array.from(e.target.files);
             files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
@@ -278,7 +265,7 @@
             });
         }
 
-        document.getElementById('cheat-standing').onclick = () => {
+        document.getElementById('btn-standing').onclick = () => {
             for (let i = 0; i < numParticles; i++) {
                 let waveFactor = Math.sin((4 * Math.PI * i) / (numParticles - 1));
                 particles[i].amplitude = Math.abs(waveFactor) * 110;
@@ -288,7 +275,7 @@
             }
         };
 
-        document.getElementById('cheat-progressive').onclick = () => {
+        document.getElementById('btn-progressive').onclick = () => {
             const phaseStep = (2 * Math.PI) / 8;
             for (let i = 0; i < numParticles; i++) {
                 particles[i].amplitude = 60; 
@@ -327,8 +314,6 @@
                 } else {
                     ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2);
                     ctx.fillStyle = "#ddd"; ctx.fill();
-                    ctx.fillStyle = "#999"; ctx.font = "bold 10px sans-serif";
-                    ctx.textAlign = "center"; ctx.fillText(i+1, x, y + 4);
                 }
             });
 
