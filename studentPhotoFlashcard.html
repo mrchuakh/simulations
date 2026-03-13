@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Recall - 600px</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0f0f0f;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Bar - Controls */
+        .top-bar {
+            background: #1a1a1a;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            z-index: 100;
+        }
+
+        /* Interaction Area */
+        #display-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 20px;
+        }
+
+        /* Image capped at 600px vertically */
+        #student-img {
+            max-height: 600px; 
+            max-width: 95%;
+            height: auto;
+            width: auto;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            display: none;
+            user-select: none;
+            border: 1px solid #444;
+        }
+
+        /* Name Overlay */
+        #name-overlay {
+            position: absolute;
+            bottom: 12%; 
+            background: rgba(0, 0, 0, 0.92);
+            padding: 18px 40px;
+            border-radius: 15px;
+            border: 2px solid #4CAF50;
+            display: none;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            pointer-events: none;
+            max-width: 80%;
+        }
+
+        #student-name {
+            font-size: clamp(24px, 5vw, 50px);
+            font-weight: 800;
+            color: #fff;
+            margin: 0;
+            text-transform: none; /* Keeps filename casing exactly as is */
+        }
+
+        #counter {
+            font-family: 'SF Mono', 'Courier New', monospace;
+            color: #00ff41; /* Matrix green for the counter */
+            background: #252525;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #999;
+            max-width: 500px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover { background: #444; transform: translateY(-1px); }
+        .btn-reset { background: #b91c1c; }
+        .btn-reset:hover { background: #ef4444; }
+
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body onclick="handleInteraction()">
+
+<div class="top-bar" onclick="event.stopPropagation()">
+    <div>
+        <input type="file" id="upload" multiple accept="image/*">
+        <button onclick="document.getElementById('upload').click()">📁 Upload Folder</button>
+        <button class="btn-reset" onclick="resetApp()">🗑️ Reset</button>
+    </div>
+    <div id="counter"></div>
+</div>
+
+<div id="display-area">
+    <div id="instr" class="instructions">
+        <h1>Student Recall</h1>
+        <p>Upload photos to begin. The filenames will be used as names.</p>
+        <p><b>Step 1:</b> Tap or press a key to see the name.</p>
+        <p><b>Step 2:</b> Tap or press a key for the next student.</p>
+    </div>
+    
+    <img id="student-img">
+    
+    <div id="name-overlay">
+        <div id="student-name"></div>
+    </div>
+</div>
+
+<script>
+    let allStudents = [];
+    let queue = [];
+    let currentStudent = null;
+    let isNameVisible = false;
+
+    const uploadInput = document.getElementById('upload');
+    const studentImg = document.getElementById('student-img');
+    const nameOverlay = document.getElementById('name-overlay');
+    const studentNameText = document.getElementById('student-name');
+    const instr = document.getElementById('instr');
+    const counterDisplay = document.getElementById('counter');
+
+    uploadInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        allStudents = files.map(file => {
+            // Take the whole filename, remove only the last extension
+            const lastDot = file.name.lastIndexOf('.');
+            const fullName = lastDot !== -1 ? file.name.substring(0, lastDot) : file.name;
+            
+            return {
+                displayName: fullName, 
+                url: URL.createObjectURL(file)
+            };
+        });
+
+        startNewRound();
+    });
+
+    function startNewRound() {
+        if (allStudents.length === 0) return;
+        
+        // Shuffle everything into the queue for a complete round
+        queue = [...allStudents].sort(() => Math.random() - 0.5);
+        
+        instr.style.display = "none";
+        showNextStudent();
+    }
+
+    function showNextStudent() {
+        if (queue.length === 0) {
+            alert("Round complete! Starting a new random sequence.");
+            startNewRound();
+            return;
+        }
+
+        currentStudent = queue.pop();
+        isNameVisible = false;
+        
+        studentImg.src = currentStudent.url;
+        studentImg.style.display = "block";
+        nameOverlay.style.display = "none";
+        
+        updateCounter();
+    }
+
+    function handleInteraction() {
+        if (!currentStudent) return;
+
+        if (!isNameVisible) {
+            // State: Photo shown, reveal the name
+            studentNameText.innerText = currentStudent.displayName;
+            nameOverlay.style.display = "block";
+            isNameVisible = true;
+        } else {
+            // State: Name shown, move to next student
+            showNextStudent();
+        }
+    }
+
+    function updateCounter() {
+        const total = allStudents.length;
+        const currentPos = total - queue.length;
+        counterDisplay.innerText = `${currentPos} / ${total}`;
+    }
+
+    window.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        handleInteraction();
+    });
+
+    function resetApp() {
+        event.stopPropagation();
+        if (confirm("Clear all student photos and reset progress?")) {
+            location.reload(); 
+        }
+    }
+</script>
+
+</body>
+</html>
