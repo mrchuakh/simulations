@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Resolution Pro Grid Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #eef1f5;
+            display: flex;
+            margin: 0;
+            height: 100vh;
+            color: #333;
+        }
+
+        .sidebar {
+            width: 360px;
+            background: #ffffff;
+            border-right: 1px solid #d1d1d1;
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        h2 { font-size: 1rem; margin-top: 0; margin-bottom: 15px; color: #000; border-bottom: 2px solid #0078d4; padding-bottom: 5px;}
+        .axis-block { background: #f8f9fb; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #e0e4e8; }
+        .group-label { font-weight: bold; font-size: 0.7rem; margin-bottom: 10px; display: block; color: #5c6773; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+        }
+
+        .tick-inputs { display: flex; gap: 4px; }
+
+        input[type="number"], select {
+            padding: 4px;
+            border: 1px solid #ccd1d9;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            margin-top: 5px;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        
+        button {
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        #genBtn { background: #0078d4; color: white; }
+        #dlBtn { background: #28a745; color: white; }
+        button:hover { opacity: 0.9; }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            background: #cbd2d9;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        canvas {
+            background: white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            max-width: 100%; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>Grid Options</h2>
+    
+    <div class="axis-block">
+        <span class="group-label">Horizontal Axis (X)</span>
+        <div class="input-row"><label>Min / Max</label>
+            <div class="tick-inputs">
+                <input type="number" id="xMin" value="0" step="any">
+                <input type="number" id="xMax" value="1.0" step="any">
+            </div>
+        </div>
+        <div class="input-row"><label>Ticks (Maj/Med/Min)</label>
+            <div class="tick-inputs">
+                <input type="number" id="xMajor" value="0.2" step="any">
+                <input type="number" id="xMedium" value="0.1" step="any">
+                <input type="number" id="xMinor" value="0.02" step="any">
+            </div>
+        </div>
+        <div class="input-row"><label>Decimals</label><input type="number" id="xDecimals" value="1" min="0"></div>
+        <label class="checkbox-row"><input type="checkbox" id="xPlainZero" checked> 0 as plain "0"</label>
+    </div>
+
+    <div class="axis-block">
+        <span class="group-label">Vertical Axis (Y)</span>
+        <div class="input-row"><label>Min / Max</label>
+            <div class="tick-inputs">
+                <input type="number" id="yMin" value="0" step="any">
+                <input type="number" id="yMax" value="2" step="any">
+            </div>
+        </div>
+        <div class="input-row"><label>Ticks (Maj/Med/Min)</label>
+            <div class="tick-inputs">
+                <input type="number" id="yMajor" value="0.5" step="any">
+                <input type="number" id="yMedium" value="0.25" step="any">
+                <input type="number" id="yMinor" value="0.05" step="any">
+            </div>
+        </div>
+        <div class="input-row"><label>Decimals</label><input type="number" id="yDecimals" value="1" min="0"></div>
+        <label class="checkbox-row"><input type="checkbox" id="yPlainZero" checked> 0 as plain "0"</label>
+    </div>
+
+    <div class="axis-block">
+        <span class="group-label">Resolution & Styling</span>
+        <div class="input-row">
+            <label>Resolution Scale</label>
+            <select id="resScale">
+                <option value="1">1x (Standard)</option>
+                <option value="2" selected>2x (Retina)</option>
+                <option value="4">4x (High Res)</option>
+                <option value="8">8x (Print Quality)</option>
+            </select>
+        </div>
+        <div class="input-row"><label>Label Font Size</label><input type="number" id="fontSize" value="11" min="6"></div>
+        <div class="input-row"><label>Major Grey</label><input type="number" id="grayMajor" value="50"></div>
+        <div class="input-row"><label>Medium Grey</label><input type="number" id="grayMedium" value="100"></div>
+        <div class="input-row"><label>Minor Grey</label><input type="number" id="grayMinor" value="200"></div>
+    </div>
+
+    <div class="actions">
+        <button id="genBtn">Update Grid Preview</button>
+        <button id="dlBtn">Download High-Res JPG</button>
+    </div>
+</div>
+
+<div class="main-content">
+    <canvas id="c"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const PX_PER_CM_BASE = 37.795;
+
+    function setupTickListeners(axis) {
+        const majorInput = document.getElementById(axis + 'Major');
+        const mediumInput = document.getElementById(axis + 'Medium');
+        const minorInput = document.getElementById(axis + 'Minor');
+        majorInput.addEventListener('input', () => {
+            const val = parseFloat(majorInput.value);
+            if (!isNaN(val) && val !== 0) {
+                mediumInput.value = parseFloat((val / 2).toPrecision(12));
+                minorInput.value = parseFloat((val / 10).toPrecision(12));
+            }
+        });
+    }
+    setupTickListeners('x');
+    setupTickListeners('y');
+
+    function getHexGrey(val) {
+        const v = Math.max(0, Math.min(255, parseInt(val || 0)));
+        const hex = v.toString(16).padStart(2, '0');
+        return `#${hex}${hex}${hex}`;
+    }
+
+    function formatVal(val, decimals, plainZero) {
+        if (Math.abs(val) < 0.00000001 && plainZero) return "0";
+        let str = val.toFixed(decimals);
+        if (parseFloat(str) === 0) {
+            str = (0).toFixed(decimals);
+            if (plainZero) return "0";
+        }
+        return str;
+    }
+
+    function draw() {
+        const scale = parseFloat(document.getElementById('resScale').value);
+        const PX_PER_CM = PX_PER_CM_BASE * scale;
+        const MAJOR_TICK_DIST_PX = PX_PER_CM * 2; 
+        const BORDER_CM_PX = PX_PER_CM * 1; // Standard 1cm padding           
+
+        const xMin = parseFloat(document.getElementById('xMin').value);
+        const xMax = parseFloat(document.getElementById('xMax').value);
+        const xMajor = parseFloat(document.getElementById('xMajor').value);
+        const xDec = parseInt(document.getElementById('xDecimals').value);
+        const xPZ = document.getElementById('xPlainZero').checked;
+
+        const yMin = parseFloat(document.getElementById('yMin').value);
+        const yMax = parseFloat(document.getElementById('yMax').value);
+        const yMajor = parseFloat(document.getElementById('yMajor').value);
+        const yDec = parseInt(document.getElementById('yDecimals').value);
+        const yPZ = document.getElementById('yPlainZero').checked;
+
+        const fSize = parseInt(document.getElementById('fontSize').value) * scale;
+        ctx.font = `${fSize}px Arial`;
+
+        // 1. CALCULATE DYNAMIC PADDING TO PREVENT CLIPPING
+        // Check widest Y-axis label
+        let maxLabelWidth = 0;
+        for (let y = yMin; y <= yMax + 0.000001; y += yMajor) {
+            let textWidth = ctx.measureText(formatVal(y, yDec, yPZ)).width;
+            if (textWidth > maxLabelWidth) maxLabelWidth = textWidth;
+        }
+
+        // Logic: Margin = 1cm + (Width of label if axis is at the edge)
+        // If xMin is 0, the Y labels are at the far left and need extra space.
+        let paddingLeft = BORDER_CM_PX;
+        if (xMin <= 0 && xMax >= 0) {
+            // Check if axis is near the left edge
+            const axisXPositionInUnits = Math.abs(xMin) / (xMax - xMin);
+            if (axisXPositionInUnits < 0.2) paddingLeft += maxLabelWidth;
+        } else if (xMax < 0) {
+             paddingLeft += maxLabelWidth; // Labels on right edge, but let's be safe
+        } else if (xMin > 0) {
+             paddingLeft += maxLabelWidth; // Labels on left edge
+        }
+
+        // Add 1cm for the Bottom to accommodate X labels
+        let paddingBottom = BORDER_CM_PX + fSize + (5 * scale);
+
+        // 2. LAYOUT
+        const gridW = ((xMax - xMin) / xMajor) * MAJOR_TICK_DIST_PX;
+        const gridH = ((yMax - yMin) / yMajor) * MAJOR_TICK_DIST_PX;
+
+        canvas.width = gridW + paddingLeft + BORDER_CM_PX; // Left padding + Right 1cm border
+        canvas.height = gridH + paddingBottom + BORDER_CM_PX; // Bottom padding + Top 1cm border
+
+        // Reset context after resizing
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const startX = paddingLeft;
+        const startY = BORDER_CM_PX;
+        const ppuX = MAJOR_TICK_DIST_PX / xMajor;
+        const ppuY = MAJOR_TICK_DIST_PX / yMajor;
+
+        const mapX = (v) => startX + (v - xMin) * ppuX;
+        const mapY = (v) => (startY + gridH) - (v - yMin) * ppuY;
+
+        // 3. DRAWING
+        const cMinor = getHexGrey(document.getElementById('grayMinor').value);
+        const cMed = getHexGrey(document.getElementById('grayMedium').value);
+        const cMaj = getHexGrey(document.getElementById('grayMajor').value);
+
+        function drawGridLayer(stepX, stepY, color, width) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width * scale;
+            if (stepX > 0) {
+                for (let x = xMin; x <= xMax + 0.000001; x += stepX) {
+                    let px = mapX(x);
+                    ctx.beginPath(); ctx.moveTo(px, startY); ctx.lineTo(px, startY + gridH); ctx.stroke();
+                }
+            }
+            if (stepY > 0) {
+                for (let y = yMin; y <= yMax + 0.000001; y += stepY) {
+                    let py = mapY(y);
+                    ctx.beginPath(); ctx.moveTo(startX, py); ctx.lineTo(startX + gridW, py); ctx.stroke();
+                }
+            }
+        }
+
+        drawGridLayer(parseFloat(document.getElementById('xMinor').value), parseFloat(document.getElementById('yMinor').value), cMinor, 0.4); 
+        drawGridLayer(parseFloat(document.getElementById('xMedium').value), parseFloat(document.getElementById('yMedium').value), cMed, 0.8);
+        drawGridLayer(xMajor, yMajor, cMaj, 1.2);
+
+        // Bold Axes
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2 * scale;
+        if (xMin <= 0 && xMax >= 0) {
+            ctx.beginPath(); ctx.moveTo(mapX(0), startY); ctx.lineTo(mapX(0), startY + gridH); ctx.stroke();
+        }
+        if (yMin <= 0 && yMax >= 0) {
+            ctx.beginPath(); ctx.moveTo(startX, mapY(0)); ctx.lineTo(startX + gridW, mapY(0)); ctx.stroke();
+        }
+
+        // Labels
+        ctx.fillStyle = "#000";
+        ctx.font = `${fSize}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        let xYPos = (yMin <= 0 && yMax >= 0) ? mapY(0) + (6 * scale) : startY + gridH + (6 * scale);
+        for (let x = xMin; x <= xMax + 0.000001; x += xMajor) {
+            ctx.fillText(formatVal(x, xDec, xPZ), mapX(x), xYPos);
+        }
+
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        let yXPos = (xMin <= 0 && xMax >= 0) ? mapX(0) - (8 * scale) : startX - (8 * scale);
+        for (let y = yMin; y <= yMax + 0.000001; y += yMajor) {
+            ctx.fillText(formatVal(y, yDec, yPZ), yXPos, mapY(y));
+        }
+    }
+
+    document.getElementById('dlBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `pro-graph.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 1.0);
+        link.click();
+    });
+
+    document.getElementById('genBtn').addEventListener('click', draw);
+    window.onload = draw;
+</script>
+
+</body>
+</html>
