@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary Quiz App</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; margin-bottom: 20px; }
+
+        /* Setup View */
+        #setup-view textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+
+        /* Quiz View */
+        #quiz-view { display: none; }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress { font-weight: bold; font-size: 1.1em; }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Toggle Switch Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .question-box {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover { background: #f9f9f9; }
+
+        .option-btn.correct { background-color: var(--success) !important; color: white; border-color: var(--success); }
+        .option-btn.incorrect { background-color: var(--error) !important; color: white; border-color: var(--error); }
+        
+        .option-btn:disabled { cursor: default; }
+
+        .footer-btns {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-remove { background-color: #95a5a6; }
+        .btn-next { background-color: var(--primary); display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Setup View -->
+    <div id="setup-view">
+        <h1>Word List Upload</h1>
+        <p>Paste your list below (Format: <i>Word. Translation</i>)</p>
+        <textarea id="word-input" placeholder="Gato. Cat&#10;Perro. Dog&#10;Libro. Book"></textarea>
+        <button class="btn" onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- Quiz View -->
+    <div id="quiz-view">
+        <div class="header-controls">
+            <div class="progress" id="progress-display">0/0</div>
+            <div class="toggle-container">
+                <span>Flip Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="flip-toggle" onchange="toggleFlip()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="question-box" id="question-text">Loading...</div>
+
+        <div class="options-grid" id="options-container">
+            <!-- Buttons generated by JS -->
+        </div>
+
+        <div class="footer-btns">
+            <button class="btn btn-remove" onclick="removeCurrentWord()">Remove from Deck</button>
+            <button class="btn btn-next" id="next-btn" onclick="nextCard()">Next Word</button>
+        </div>
+        
+        <button class="btn" style="background:#eee; color:#333; margin-top:40px;" onclick="location.reload()">Upload New List</button>
+    </div>
+</div>
+
+<script>
+    let masterList = [];   // The fixed list of all valid words
+    let activeDeck = [];   // The current shuffled sequence
+    let currentIndex = 0;
+    let isFlipped = false;
+    let currentCard = null;
+
+    function startQuiz() {
+        const text = document.getElementById('word-input').value.trim();
+        if (!text) return alert("Please enter some words!");
+
+        // Parsing logic: Split by lines, then by the first fullstop
+        masterList = text.split('\n').map(line => {
+            const parts = line.split('.');
+            if (parts.length < 2) return null;
+            return {
+                foreign: parts[0].trim(),
+                english: parts.slice(1).join('.').trim() // Re-join if multiple dots
+            };
+        }).filter(item => item !== null);
+
+        if (masterList.length < 4) {
+            alert("Please provide at least 4 words for multiple choice options.");
+            return;
+        }
+
+        initDeck();
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('quiz-view').style.display = 'block';
+        showCard();
+    }
+
+    function initDeck() {
+        activeDeck = [...masterList];
+        shuffleArray(activeDeck);
+        currentIndex = 0;
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function toggleFlip() {
+        isFlipped = document.getElementById('flip-toggle').checked;
+        showCard(); // Refresh current display for new direction
+    }
+
+    function showCard() {
+        if (activeDeck.length === 0) {
+            alert("The deck is empty! Please upload a new list.");
+            location.reload();
+            return;
+        }
+
+        currentCard = activeDeck[currentIndex];
+        const questionText = isFlipped ? currentCard.english : currentCard.foreign;
+        const correctAnswer = isFlipped ? currentCard.foreign : currentCard.english;
+
+        // Display Progress
+        document.getElementById('progress-display').innerText = `${currentIndex + 1}/${activeDeck.length}`;
+        document.getElementById('question-text').innerText = questionText;
+        document.getElementById('next-btn').style.display = 'none';
+
+        // Generate Options
+        const options = generateOptions(correctAnswer);
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleAnswer(btn, opt, correctAnswer);
+            container.appendChild(btn);
+        });
+    }
+
+    function generateOptions(correct) {
+        // Get all possible translations (direction dependent)
+        let allPossible = masterList.map(item => isFlipped ? item.foreign : item.english);
+        
+        // Remove the correct one from distractors
+        let distractors = allPossible.filter(val => val !== correct);
+        shuffleArray(distractors);
+        
+        // Pick top 3 distractors
+        let finalOptions = [correct, ...distractors.slice(0, 3)];
+        shuffleArray(finalOptions);
+        return finalOptions;
+    }
+
+    function handleAnswer(selectedBtn, selectedValue, correctValue) {
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons.forEach(btn => {
+            btn.disabled = true; // Fix options after selection
+            if (btn.innerText === correctValue) {
+                btn.classList.add('correct');
+            }
+        });
+
+        if (selectedValue !== correctValue) {
+            selectedBtn.classList.add('incorrect');
+        }
+
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextCard() {
+        currentIndex++;
+        if (currentIndex >= activeDeck.length) {
+            initDeck(); // Auto-reshuffle and restart
+        }
+        showCard();
+    }
+
+    function removeCurrentWord() {
+        const removedWord = activeDeck[currentIndex];
+        
+        // Remove from master list (so it doesn't appear as a distractor)
+        masterList = masterList.filter(w => w !== removedWord);
+        
+        // Remove from active deck
+        activeDeck.splice(currentIndex, 1);
+
+        if (activeDeck.length === 0) {
+            alert("All words removed. Returning to setup.");
+            location.reload();
+            return;
+        }
+
+        // If we removed the last card, go back to start of new deck
+        if (currentIndex >= activeDeck.length) {
+            currentIndex = 0;
+            shuffleArray(activeDeck);
+        }
+
+        showCard();
+    }
+</script>
+
+</body>
+</html>
