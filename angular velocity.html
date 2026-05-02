@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear vs Angular</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f4f8; 
+            margin: 0; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 25px; color: #1a2a3a; }
+
+        .app-container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .control-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 280px;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid #d1d9e6;
+        }
+
+        .red-panel { border-top: 6px solid #e74c3c; }
+        .blue-panel { border-top: 6px solid #3498db; }
+
+        h2 { margin: 0 0 15px 0; font-size: 1.1em; color: #444; }
+
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85em; font-weight: 600; color: #555; margin-bottom: 4px; }
+        
+        input[type="text"] { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ccd6e0; 
+            border-radius: 6px; 
+            box-sizing: border-box;
+            font-size: 1em;
+            background: #fff;
+            outline: none;
+        }
+
+        .canvas-container {
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 1px solid #d1d9e6;
+        }
+
+        canvas { display: block; background: #fff; }
+
+        .button-container { margin-top: 20px; text-align: center; }
+        button { 
+            padding: 15px 45px; 
+            font-size: 1.1em; 
+            cursor: pointer; 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button.paused { background: #e67e22; }
+
+        /* Units styling: No italics for text, italics only for π symbol */
+        .unit { font-weight: normal; color: #888; font-style: normal; }
+        .pi-symbol { font-style: italic; }
+    </style>
+</head>
+<body>
+
+<h1>Linear vs Angular</h1>
+
+<div class="app-container">
+    <!-- Red Control Panel -->
+    <div class="control-column">
+        <div class="panel red-panel" id="red-controls">
+            <h2 style="color: #e74c3c;">Red Ball</h2>
+            <div class="input-group">
+                <label>Radius <span class="unit">(m)</span></label>
+                <input type="text" class="radius" value="1.0">
+            </div>
+            <div class="input-group">
+                <label>Linear Velocity <span class="unit">(m/s)</span></label>
+                <input type="text" class="linear" value="1.57">
+            </div>
+            <div class="input-group">
+                <label>Angular Velocity <span class="unit">(<span class="pi-symbol">π</span> rad/s)</span></label>
+                <input type="text" class="angular" value="0.5">
+            </div>
+            <div class="input-group">
+                <label>Period <span class="unit">(s)</span></label>
+                <input type="text" class="period" value="4.00">
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button id="toggleBtn">Start Animation</button>
+        </div>
+    </div>
+
+    <!-- Simulation Window -->
+    <div class="canvas-container">
+        <canvas id="simCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <!-- Blue Control Panel -->
+    <div class="control-column">
+        <div class="panel blue-panel" id="blue-controls">
+            <h2 style="color: #3498db;">Blue Ball</h2>
+            <div class="input-group">
+                <label>Radius <span class="unit">(m)</span></label>
+                <input type="text" class="radius" value="2.0">
+            </div>
+            <div class="input-group">
+                <label>Linear Velocity <span class="unit">(m/s)</span></label>
+                <input type="text" class="linear" value="3.14">
+            </div>
+            <div class="input-group">
+                <label>Angular Velocity <span class="unit">(<span class="pi-symbol">π</span> rad/s)</span></label>
+                <input type="text" class="angular" value="0.5">
+            </div>
+            <div class="input-group">
+                <label>Period <span class="unit">(s)</span></label>
+                <input type="text" class="period" value="4.00">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const toggleBtn = document.getElementById('toggleBtn');
+    
+    let isRunning = false;
+    let lastTime = 0;
+    const PX_PER_METER = 100;
+
+    const balls = {
+        red: { color: '#e74c3c', angle: 0, r: 1.0, v: 1.57, w_mult: 0.5, panel: document.getElementById('red-controls') },
+        blue: { color: '#3498db', angle: 0, r: 2.0, v: 3.14, w_mult: 0.5, panel: document.getElementById('blue-controls') }
+    };
+
+    function updatePhysics(ball, changedClass) {
+        const panel = ball.panel;
+        const getVal = (cls) => {
+            const v = parseFloat(panel.querySelector('.' + cls).value);
+            return isNaN(v) ? 0 : v;
+        };
+
+        let r = getVal('radius');
+        let v = getVal('linear');
+        let w_m = getVal('angular');
+        let t = getVal('period');
+
+        if (changedClass === 'radius') {
+            v = r * (w_m * Math.PI);
+        } else if (changedClass === 'linear') {
+            w_m = (r === 0) ? 0 : v / (r * Math.PI);
+            t = (w_m === 0) ? 0 : 2 / w_m;
+        } else if (changedClass === 'angular') {
+            v = r * (w_m * Math.PI);
+            t = (w_m === 0) ? 0 : 2 / w_m;
+        } else if (changedClass === 'period') {
+            w_m = (t === 0) ? 0 : 2 / t;
+            v = r * (w_m * Math.PI);
+        }
+
+        ball.r = r;
+        ball.v = v;
+        ball.w_mult = w_m;
+
+        if (changedClass !== 'linear') panel.querySelector('.linear').value = v.toFixed(2);
+        if (changedClass !== 'angular') panel.querySelector('.angular').value = w_m.toFixed(3);
+        if (changedClass !== 'period') panel.querySelector('.period').value = t.toFixed(2);
+    }
+
+    ['red', 'blue'].forEach(key => {
+        const ball = balls[key];
+        ball.panel.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                updatePhysics(ball, e.target.className);
+                if (!isRunning) draw();
+            });
+        });
+    });
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        Object.values(balls).forEach(ball => {
+            const rPx = ball.r * PX_PER_METER;
+
+            // Draw orbit circle
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.beginPath();
+            ctx.arc(cx, cy, rPx, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Calculate Ball Position
+            const x = cx + rPx * Math.cos(ball.angle);
+            const y = cy + rPx * Math.sin(ball.angle);
+
+            // Draw Ball
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc(x, y, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+    }
+
+    function animate(time) {
+        if (!isRunning) return;
+        const dt = (time - lastTime) / 1000;
+        lastTime = time;
+
+        Object.values(balls).forEach(ball => {
+            ball.angle += (ball.w_mult * Math.PI) * dt;
+        });
+
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        isRunning = !isRunning;
+        toggleBtn.textContent = isRunning ? "Pause Animation" : "Start Animation";
+        toggleBtn.classList.toggle('paused', isRunning);
+        if (isRunning) {
+            lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }
+    });
+
+    draw();
+</script>
+
+</body>
+</html>
